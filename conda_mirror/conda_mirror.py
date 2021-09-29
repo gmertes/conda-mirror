@@ -299,6 +299,13 @@ def _make_arg_parser():
         default=0,
     )
     ap.add_argument(
+        "--logfile",
+        dest="logfile",
+        type=str,
+        default="",
+        help="Location of an (optional) log file. Uses the log level set by the verbose flag.",
+    )
+    ap.add_argument(
         "--config",
         action="store",
         help="Path to the yaml config file",
@@ -390,7 +397,7 @@ def _make_arg_parser():
     return ap
 
 
-def _init_logger(verbosity):
+def _init_logger(verbosity, logfile):
     # set up the logger
     global logger
     logger = logging.getLogger("conda_mirror")
@@ -409,6 +416,17 @@ def _init_logger(verbosity):
 
     logger.addHandler(stream_handler)
 
+    if logfile:
+        try:
+            fh = logging.FileHandler(logfile)
+            fh.setLevel(loglevel)
+            logger.addHandler(fh)
+            logger.info('Logging to file %s', logfile)
+        except FileNotFoundError:
+            logger.error('Invalid logfile path, not logging to file.')
+        except Exception:
+            logger.error('Undefined error in logfile creation, not logging to file.')
+
     print(
         "Log level set to %s" % logging.getLevelName(logmap[verbosity]), file=sys.stdout
     )
@@ -423,7 +441,7 @@ def _parse_and_format_args():
     # parse arguments without setting defaults
     given_args, _ = parser._parse_known_args(sys.argv[1:], argparse.Namespace())
 
-    _init_logger(args.verbose)
+    _init_logger(args.verbose, args.logfile)
     logger.debug("sys.argv: %s", sys.argv)
 
     if args.version:
